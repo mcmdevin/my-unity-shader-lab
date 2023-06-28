@@ -50,16 +50,24 @@ Interpolators MyVertexProgram(VertexData v) {
 	Interpolators i;
 	i.pos = UnityObjectToClipPos(v.vertex);
 	i.worldPos = mul(unity_ObjectToWorld, v.vertex);
+	i.uv = TRANSFORM_TEX(v.uv, _MainTex);
 	i.normal = UnityObjectToWorldNormal(v.normal);
 	i.tangent = UnityObjectToWorldDir(v.tangent.xyz);
-	i.bitangent = cross(i.normal, i.tangent); 
-	i.bitangent *= v.tangent.w * unity_WorldTransformParams.w;
-	i.uv = TRANSFORM_TEX(v.uv, _MainTex);
+	i.bitangent = cross(i.normal, i.tangent.xyz) * (v.tangent.w * unity_WorldTransformParams.w);
 
 	TRANSFER_SHADOW(i); // set i.shadowCoordinates to i.pos
-
 	ComputeVertexLightColor(i);
 	return i;
+}
+
+float3 CalculateNormalMapping(Interpolators i) {
+	float3 normalTS = UnpackScaleNormal(tex2D(_NormalMap, i.uv), _NormalScale);
+	float3 normalWS = normalize(
+		normalTS.x * i.tangent +
+		normalTS.y * i.bitangent +
+		normalTS.z * i.normal
+	);
+	return normalWS;
 }
 
 UnityLight CreateLight(Interpolators i) {
@@ -97,29 +105,18 @@ UnityIndirect CreateIndirectLight(Interpolators i) {
 float4 MyFragmentProgram(Interpolators i) : SV_TARGET {
 
 	float3 viewDir = normalize(_WorldSpaceCameraPos - i.worldPos);
-
 	float3 albedo = tex2D(_MainTex, i.uv).rgb * _Tint.rgb;
-
 	float3 specularTint;
 	float oneMinusReflectivity;
 	albedo = DiffuseAndSpecularFromMetallic( // set specularTint and oneMinusReflectivity from albedo and metallic
 		albedo, _Metallic, specularTint, oneMinusReflectivity
 	);
-
-	float3 mapNormal = UnpackScaleNormal(tex2D(_NormalMap, i.uv), _NormalScale);
-
-	float3x3 mtxTangentToWorld = {
-		i.tangent.x, i.bitangent.x, i.normal.x,
-		i.tangent.y, i.bitangent.y, i.normal.y,
-		i.tangent.z, i.bitangent.z, i.normal.z,
-	};
-
-	float3 mappedNormal = mul(mtxTangentToWorld, mapNormal);
+	float3 normalWS = CalculateNormalMapping(i); 
 
 	return UNITY_BRDF_PBS(
 		albedo, specularTint,
 		oneMinusReflectivity, _Smoothness,
-		mappedNormal, viewDir,
+		normalWS, viewDir,
 		CreateLight(i), CreateIndirectLight(i)
 	);
 }
