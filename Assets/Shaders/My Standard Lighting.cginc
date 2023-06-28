@@ -28,7 +28,7 @@ struct Interpolators {
 	float3 bitangent : TEXCOORD3;
 	float3 worldPos : TEXCOORD4;
 
-	SHADOW_COORDS(5)
+	SHADOW_COORDS(5) // shadowCoordinates is TEXCOORD5
 
 	#if defined(VERTEXLIGHT_ON)
 		float3 vertexLightColor : TEXCOORD6;
@@ -42,7 +42,7 @@ void ComputeVertexLightColor(inout Interpolators i) {
 			unity_LightColor[0].rgb, unity_LightColor[1].rgb,
 			unity_LightColor[2].rgb, unity_LightColor[3].rgb,
 			unity_4LightAtten0, i.worldPos, i.normal
-		);
+		); // https://catlikecoding.com/unity/tutorials/rendering/part-5/
 	#endif
 }
 
@@ -56,7 +56,7 @@ Interpolators MyVertexProgram(VertexData v) {
 	i.bitangent *= v.tangent.w * unity_WorldTransformParams.w;
 	i.uv = TRANSFORM_TEX(v.uv, _MainTex);
 
-	TRANSFER_SHADOW(i);
+	TRANSFER_SHADOW(i); // set i.shadowCoordinates to i.pos
 
 	ComputeVertexLightColor(i);
 	return i;
@@ -64,7 +64,7 @@ Interpolators MyVertexProgram(VertexData v) {
 
 UnityLight CreateLight(Interpolators i) {
 	UnityLight light;
-
+	// _WorldSpaceLightPos0: current light position
 	#if defined(POINT) || defined(POINT_COOKIE) || defined(SPOT)
 		light.dir = normalize(_WorldSpaceLightPos0.xyz - i.worldPos);
 	#else
@@ -102,7 +102,7 @@ float4 MyFragmentProgram(Interpolators i) : SV_TARGET {
 
 	float3 specularTint;
 	float oneMinusReflectivity;
-	albedo = DiffuseAndSpecularFromMetallic(
+	albedo = DiffuseAndSpecularFromMetallic( // set specularTint and oneMinusReflectivity from albedo and metallic
 		albedo, _Metallic, specularTint, oneMinusReflectivity
 	);
 
