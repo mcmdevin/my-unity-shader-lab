@@ -65,6 +65,7 @@ public class MyStandardShaderGUI : ShaderGUI {
         DoMetallic();
         DoSmoothness();
         DoNormal();
+        DoEmission();
         editor.TextureScaleOffsetProperty(mainTex);
     }
 
@@ -105,5 +106,16 @@ public class MyStandardShaderGUI : ShaderGUI {
             MakeLabel(map), map,
             map.textureValue ? FindProperty("_NormalScale") : null
         );
+    }
+
+    void DoEmission() {
+        MaterialProperty map = FindProperty("_EmissionMap");
+        EditorGUI.BeginChangeCheck();
+        editor.TexturePropertyWithHDRColor(
+            MakeLabel(map, "Emission (RGB)"), FindProperty("_EmissionMap"), FindProperty("_Emission"), false
+        );
+        if (EditorGUI.EndChangeCheck()) {
+            SetKeyword("_EMISSION_MAP", map.textureValue);
+        }
     }
 }
