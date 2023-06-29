@@ -65,6 +65,7 @@ public class MyStandardShaderGUI : ShaderGUI {
         DoMetallic();
         DoSmoothness();
         DoNormal();
+        DoOcclusion();
         DoEmission();
         editor.TextureScaleOffsetProperty(mainTex);
     }
@@ -106,6 +107,18 @@ public class MyStandardShaderGUI : ShaderGUI {
             MakeLabel(map), map,
             map.textureValue ? FindProperty("_NormalScale") : null
         );
+    }
+
+    void DoOcclusion() {
+        MaterialProperty map = FindProperty("_OcclusionMap");
+        EditorGUI.BeginChangeCheck();
+        editor.TexturePropertySingleLine(
+            MakeLabel(map, "Occusion (G)"), map,
+            map.textureValue ? FindProperty("_OcclusionStrength") : null
+        );
+        if (EditorGUI.EndChangeCheck()) {
+            SetKeyword("_OCCLUSION_MAP", map.textureValue);
+        }
     }
 
     void DoEmission() {

@@ -12,6 +12,8 @@ float _NormalScale;
 sampler2D _MetallicMap;
 float _Metallic;
 float _Smoothness;
+sampler2D _OcclusionMap;
+float _OcclusionStrength;
 sampler2D _EmissionMap;
 float3 _Emission;
 
@@ -49,6 +51,14 @@ float GetSmoothness(Interpolators i) {
 		mapSmoothness = tex2D(_MetallicMap, i.uv).a; 
 	#endif
 	return mapSmoothness * _Smoothness;
+}
+
+float3 GetOcclusion(Interpolators i) {
+	#if defined(_OCCLUSION_MAP)
+		return lerp(1, tex2D(_OcclusionMap, i.uv).g, _OcclusionStrength);
+	#else
+		return 1;
+	#endif
 }
 
 float3 GetEmission(Interpolators i) {
@@ -172,6 +182,10 @@ UnityIndirect CreateIndirectLight(Interpolators i, float3 viewDir) {
 		#else
 			indirectLight.specular = probe0;
 		#endif
+
+		float occlusion = GetOcclusion(i);
+		indirectLight.diffuse *= occlusion;
+		indirectLight.specular *= occlusion;
 	#endif
 
 	return indirectLight;

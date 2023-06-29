@@ -12,6 +12,8 @@ Shader "Custom/My Standard Shader" {
 		[NoScaleOffset] _MetallicMap ("Metallic", 2D) = "white" {}
 		[Gamma] _Metallic ("Metallic", Range(0, 1)) = 0 // metallic slider should be Gamma corrected
 		_Smoothness ("Smoothness", Range(0, 1)) = 0.1
+		[NoScaleOffset] _OcclusionMap ("Occlusion", 2D) = "white" {}
+		_OcclusionStrength("Occlusion Strength", Range(0, 1)) = 1
 		[NoScaleOffset] _EmissionMap ("Emission", 2D) = "black" {}
 		_Emission ("Emission", Color) = (0, 0, 0)
 	}
@@ -30,6 +32,7 @@ Shader "Custom/My Standard Shader" {
 
 			#pragma shader_feature _METALLIC_MAP
 			#pragma shader_feature _SMOOTHNESS_ALBEDO
+			#pragma shader_feature _OCCLUSION_MAP
 			#pragma shader_feature _EMISSION_MAP
 
 			#pragma multi_compile _ SHADOWS_SCREEN // keyword when the main light casts shadow
