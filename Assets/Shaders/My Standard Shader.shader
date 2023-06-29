@@ -9,6 +9,7 @@ Shader "Custom/My Standard Shader" {
 		_MainTex ("Albedo", 2D) = "white" {}
 		[NoScaleOffset] _NormalMap ("Normal Map", 2D) = "bump" {}
 		_NormalScale ("Normal Scale", Range(0, 1)) = 1
+		[NoScaleOffset] _MetallicMap ("Metallic", 2D) = "white" {}
 		[Gamma] _Metallic ("Metallic", Range(0, 1)) = 0 // metallic slider should be Gamma corrected
 		_Smoothness ("Smoothness", Range(0, 1)) = 0.1
 	}
@@ -24,6 +25,9 @@ Shader "Custom/My Standard Shader" {
 			CGPROGRAM
 
 			#pragma target 3.0
+
+			#pragma shader_feature _METALLIC_MAP
+			#pragma shader_feature _SMOOTHNESS_ALBEDO
 
 			#pragma multi_compile _ SHADOWS_SCREEN // keyword when the main light casts shadow
 			#pragma multi_compile _ VERTEXLIGHT_ON
@@ -49,6 +53,9 @@ Shader "Custom/My Standard Shader" {
 			CGPROGRAM
 
 			#pragma target 3.0
+
+			#pragma shader_feature _METALLIC_MAP
+			#pragma shader_feature _SMOOTHNESS_ALBEDO
 
 			#pragma multi_compile_fwdadd_fullshadows // let all sorts of light cast shadows
 
@@ -79,4 +86,6 @@ Shader "Custom/My Standard Shader" {
 			ENDCG
 		}
 	}
+
+	CustomEditor "MyStandardShaderGUI"
 }

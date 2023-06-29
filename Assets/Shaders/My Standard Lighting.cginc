@@ -1,6 +1,4 @@
-﻿// Upgrade NOTE: replaced 'UNITY_PASS_TEXCUBE(unity_SpecCube1)' with 'UNITY_PASS_TEXCUBE_SAMPLER(unity_SpecCube1,unity_SpecCube0)'
-
-#if !defined(MY_LIGHTING_INCLUDED)
+﻿#if !defined(MY_LIGHTING_INCLUDED)
 #define MY_LIGHTING_INCLUDED
 
 #include "UnityPBSLighting.cginc"
@@ -11,7 +9,7 @@ sampler2D _MainTex;
 float4 _MainTex_ST;
 sampler2D _NormalMap;
 float _NormalScale;
-
+sampler2D _MetallicMap;
 float _Metallic;
 float _Smoothness;
 
@@ -36,6 +34,20 @@ struct Interpolators {
 		float3 vertexLightColor : TEXCOORD6;
 	#endif
 };
+
+float GetMetallic(Interpolators i) {
+	return tex2D(_MetallicMap, i.uv).r * _Metallic;
+}
+
+float GetSmoothness(Interpolators i) {
+	float mapSmoothness = 1;
+	#if defined(_SMOOTHNESS_ALBEDO)
+		mapSmoothness = tex2D(_MainTex, i.uv).a; 
+	#elif defined(_METALLIC_MAP)
+		mapSmoothness = tex2D(_MetallicMap, i.uv).a; 
+	#endif
+	return mapSmoothness * _Smoothness;
+}
 
 void ComputeVertexLightColor(inout Interpolators i) {
 	#if defined(VERTEXLIGHT_ON)
@@ -116,7 +128,7 @@ UnityIndirect CreateIndirectLight(Interpolators i, float3 viewDir) {
 		indirectLight.diffuse += max(0, ShadeSH9(float4(i.normal, 1)));
 		float3 reflectionDir = reflect(-viewDir, i.normal);
 		Unity_GlossyEnvironmentData envData;
-		envData.roughness = 1 - _Smoothness;
+		envData.roughness = 1 - GetSmoothness(i);
 		envData.reflUVW = BoxProjection(
 			reflectionDir, i.worldPos,
 			unity_SpecCube0_ProbePosition,
@@ -152,19 +164,18 @@ UnityIndirect CreateIndirectLight(Interpolators i, float3 viewDir) {
 }
 
 float4 MyFragmentProgram(Interpolators i) : SV_TARGET {
-
 	float3 viewDir = normalize(_WorldSpaceCameraPos - i.worldPos);
 	float3 albedo = tex2D(_MainTex, i.uv).rgb * _Tint.rgb;
 	float3 specularTint;
 	float oneMinusReflectivity;
 	albedo = DiffuseAndSpecularFromMetallic( // set specularTint and oneMinusReflectivity from albedo and metallic
-		albedo, _Metallic, specularTint, oneMinusReflectivity
+		albedo, GetMetallic(i), specularTint, oneMinusReflectivity
 	);
 	i.normal = CalculateNormalMapping(i); 
 
 	return UNITY_BRDF_PBS(
 		albedo, specularTint,
-		oneMinusReflectivity, _Smoothness,
+		oneMinusReflectivity, GetSmoothness(i),
 		i.normal, viewDir,
 		CreateLight(i), CreateIndirectLight(i, viewDir)
 	);
