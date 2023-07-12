@@ -58,7 +58,6 @@ public class MyStandardShaderGUI : ShaderGUI {
     void DoMain() {
         // GUILayout.Label("Main Maps");
         MaterialProperty mainTex = FindProperty("_MainTex");
-        MaterialProperty tint = FindProperty("_Tint");
         editor.TexturePropertySingleLine(
             MakeLabel(mainTex, "Albedo (RGB)"), mainTex, FindProperty("_Tint")
         );
