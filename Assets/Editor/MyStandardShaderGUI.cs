@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 using UnityEditor;
 
 public class MyStandardShaderGUI : ShaderGUI {
@@ -94,6 +95,15 @@ public class MyStandardShaderGUI : ShaderGUI {
         if (EditorGUI.EndChangeCheck()) {
             RecordAction("Rendering Mode");
             SetKeyword("_RENDERING_CUTOUT", mode == RenderingMode.Cutout);
+
+            RenderQueue queue = (mode == RenderingMode.Opaque) ?
+                RenderQueue.Geometry : RenderQueue.AlphaTest;
+            string renderType = (mode == RenderingMode.Opaque) ?
+                "" : "TransparentCutout";
+            foreach (Material m in editor.targets) {
+                m.renderQueue = (int)queue;
+                m.SetOverrideTag("RenderType", renderType);
+            }
         }
     }
 
