@@ -11,7 +11,45 @@ public class MyStandardShaderGUI : ShaderGUI {
     bool shouldShowAlphaCutoff;
 
     enum RenderingMode {
-        Opaque, Cutout
+        Opaque, Cutout, Fade, Transparent
+    }
+
+    struct RenderingSettings {
+        public RenderQueue queue;
+        public string renderType;
+        public BlendMode srcBlend, dstBlend;
+        public bool zWrite;
+
+        public static RenderingSettings[] modes = {
+            new RenderingSettings {
+                queue = RenderQueue.Geometry,
+                renderType = "",
+                srcBlend = BlendMode.One,
+                dstBlend = BlendMode.Zero,
+                zWrite = true
+            },
+            new RenderingSettings {
+                queue = RenderQueue.AlphaTest,
+                renderType = "TransparentCutout",
+                srcBlend = BlendMode.One,
+                dstBlend = BlendMode.Zero,
+                zWrite = true
+            },
+            new RenderingSettings {
+                queue = RenderQueue.Transparent,
+                renderType = "Transparent",
+                srcBlend = BlendMode.SrcAlpha,
+                dstBlend = BlendMode.OneMinusSrcAlpha,
+                zWrite = false
+            },
+            new RenderingSettings {
+                queue = RenderQueue.Transparent,
+                renderType = "Transparent",
+                srcBlend = BlendMode.One,
+                dstBlend = BlendMode.OneMinusSrcAlpha,
+                zWrite = false
+            }
+        };
     }
 
     enum SmoothnessSource {
@@ -87,6 +125,12 @@ public class MyStandardShaderGUI : ShaderGUI {
             mode = RenderingMode.Cutout;
             shouldShowAlphaCutoff = true;
         }
+        else if (IsKeywordEnabled("_RENDERING_FADE")) {
+            mode = RenderingMode.Fade;
+        }
+        else if (IsKeywordEnabled("_RENDERING_TRANSPARENT")) {
+            mode = RenderingMode.Transparent;
+        }
 
         EditorGUI.BeginChangeCheck();
         mode = (RenderingMode)EditorGUILayout.EnumPopup(
@@ -95,14 +139,16 @@ public class MyStandardShaderGUI : ShaderGUI {
         if (EditorGUI.EndChangeCheck()) {
             RecordAction("Rendering Mode");
             SetKeyword("_RENDERING_CUTOUT", mode == RenderingMode.Cutout);
+            SetKeyword("_RENDERING_FADE", mode == RenderingMode.Fade);
+            SetKeyword("_RENDERING_TRANSPARENT", mode == RenderingMode.Transparent);
 
-            RenderQueue queue = (mode == RenderingMode.Opaque) ?
-                RenderQueue.Geometry : RenderQueue.AlphaTest;
-            string renderType = (mode == RenderingMode.Opaque) ?
-                "" : "TransparentCutout";
+            RenderingSettings settings = RenderingSettings.modes[(int)mode];
             foreach (Material m in editor.targets) {
-                m.renderQueue = (int)queue;
-                m.SetOverrideTag("RenderType", renderType);
+                m.renderQueue = (int)settings.queue;
+                m.SetOverrideTag("RenderType", settings.renderType);
+                m.SetInt("_SrcBlend", (int)settings.srcBlend);
+                m.SetInt("_DstBlend", (int)settings.dstBlend);
+                m.SetInt("_ZWrite", settings.zWrite ? 1 : 0);
             }
         }
     }

@@ -17,6 +17,9 @@ Shader "Custom/My Standard Shader" {
 		[NoScaleOffset] _EmissionMap ("Emission", 2D) = "black" {}
 		_Emission ("Emission", Color) = (0, 0, 0)
 		_AlphaCutoff ("Alpha Cutoff", Range(0, 1)) = 0.5
+		[HideInInspector] _SrcBlend ("_SrcBlend", Float) = 1
+		[HideInInspector] _DstBlend ("_DstBlend", Float) = 1
+		[HideInInspector] _ZWrite ("_ZWrite", Float) = 1
 	}
 
 	SubShader {
@@ -26,12 +29,14 @@ Shader "Custom/My Standard Shader" {
 				"LightMode" = "ForwardBase"
 				// Lightmode: https://docs.unity3d.com/Packages/com.unity.render-pipelines.universal@11.0/manual/urp-shaders/urp-shaderlab-pass-tags.html#urp-pass-tags-lightmode
 			}
+			Blend [_SrcBlend] [_DstBlend]
+			ZWrite [_ZWrite]
 
 			CGPROGRAM
 
 			#pragma target 3.0
 
-			#pragma shader_feature _RENDERING_CUTOUT
+			#pragma shader_feature _ _RENDERING_CUTOUT _RENDERING_FADE _RENDERING_TRANSPARENT 
 			#pragma shader_feature _METALLIC_MAP
 			#pragma shader_feature _SMOOTHNESS_ALBEDO
 			#pragma shader_feature _OCCLUSION_MAP
@@ -55,14 +60,14 @@ Shader "Custom/My Standard Shader" {
 				"LightMode" = "ForwardAdd"
 			}
 
-			Blend One One
+			Blend [_SrcBlend] One
 			ZWrite Off // writing to Z buffer twice isn't necessary
 
 			CGPROGRAM
 
 			#pragma target 3.0
 
-			#pragma shader_feature _RENDERING_CUTOUT
+			#pragma shader_feature _ _RENDERING_CUTOUT _RENDERING_FADE _RENDERING_TRANSPARENT 
 			#pragma shader_feature _METALLIC_MAP
 			#pragma shader_feature _SMOOTHNESS_ALBEDO
 
