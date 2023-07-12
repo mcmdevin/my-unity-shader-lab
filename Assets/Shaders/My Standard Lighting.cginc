@@ -16,6 +16,7 @@ sampler2D _OcclusionMap;
 float _OcclusionStrength;
 sampler2D _EmissionMap;
 float3 _Emission;
+float _AlphaCutoff;
 
 struct VertexData {
 	float4 vertex : POSITION;
@@ -38,6 +39,14 @@ struct Interpolators {
 		float3 vertexLightColor : TEXCOORD6;
 	#endif
 };
+
+float GetAlpha(Interpolators i) {
+	float alpha = _Tint.a;
+	#if !defined(_SMOOTHNESS_ALBEDO)
+		alpha *= tex2D(_MainTex, i.uv).a;
+	#endif
+	return alpha;
+}
 
 float GetMetallic(Interpolators i) {
 	return tex2D(_MetallicMap, i.uv).r * _Metallic;
@@ -192,6 +201,11 @@ UnityIndirect CreateIndirectLight(Interpolators i, float3 viewDir) {
 }
 
 float4 MyFragmentProgram(Interpolators i) : SV_TARGET {
+	float alpha = GetAlpha(i);
+	#if defined(_RENDERING_CUTOUT)
+		clip(alpha - _AlphaCutoff);
+	#endif
+
 	float3 viewDir = normalize(_WorldSpaceCameraPos - i.worldPos);
 	float3 albedo = tex2D(_MainTex, i.uv).rgb * _Tint.rgb;
 	float3 specularTint;

@@ -7,6 +7,12 @@ public class MyStandardShaderGUI : ShaderGUI {
     MaterialEditor editor;
     MaterialProperty[] properties;
 
+    bool shouldShowAlphaCutoff;
+
+    enum RenderingMode {
+        Opaque, Cutout
+    }
+
     enum SmoothnessSource {
         Metallic, Albedo
     }
@@ -17,6 +23,7 @@ public class MyStandardShaderGUI : ShaderGUI {
         this.target = editor.target as Material;
         this.editor = editor;
         this.properties = properties;
+        DoRenderingMode();
         DoMain();
     }
 
@@ -61,12 +68,40 @@ public class MyStandardShaderGUI : ShaderGUI {
         editor.TexturePropertySingleLine(
             MakeLabel(mainTex, "Albedo (RGB)"), mainTex, FindProperty("_Tint")
         );
+        if (shouldShowAlphaCutoff) {
+            DoAlphaCutoff();
+        }
         DoMetallic();
         DoSmoothness();
         DoNormal();
         DoOcclusion();
         DoEmission();
         editor.TextureScaleOffsetProperty(mainTex);
+    }
+
+    void DoRenderingMode() {
+        RenderingMode mode = RenderingMode.Opaque;
+        shouldShowAlphaCutoff = false;
+        if (IsKeywordEnabled("_RENDERING_CUTOUT")) {
+            mode = RenderingMode.Cutout;
+            shouldShowAlphaCutoff = true;
+        }
+
+        EditorGUI.BeginChangeCheck();
+        mode = (RenderingMode)EditorGUILayout.EnumPopup(
+            MakeLabel("Rendering Mode"), mode
+        );
+        if (EditorGUI.EndChangeCheck()) {
+            RecordAction("Rendering Mode");
+            SetKeyword("_RENDERING_CUTOUT", mode == RenderingMode.Cutout);
+        }
+    }
+
+    void DoAlphaCutoff() {
+        MaterialProperty slider = FindProperty("_AlphaCutoff");
+        EditorGUI.indentLevel += 2;
+        editor.ShaderProperty(slider, MakeLabel(slider));
+        EditorGUI.indentLevel -= 2;
     }
 
     void DoMetallic() {
