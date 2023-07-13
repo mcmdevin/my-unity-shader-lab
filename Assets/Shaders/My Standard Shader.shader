@@ -90,6 +90,9 @@ Shader "Custom/My Standard Shader" {
 
 			#pragma target 3.0
 
+			#pragma shader_feature _RENDERING_CUTOUT
+			#pragma shader_feature _SMOOTHNESS_ALBEDO
+
 			#pragma multi_compile_shadowcaster // defines SHADOWS_DEPTH and SHADOW_CUBE
 
 			#pragma vertex MyShadowVertexProgram
