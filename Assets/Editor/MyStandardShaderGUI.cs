@@ -101,23 +101,6 @@ public class MyStandardShaderGUI : ShaderGUI {
         return staticLabel;
     }
 
-    void DoMain() {
-        // GUILayout.Label("Main Maps");
-        MaterialProperty mainTex = FindProperty("_MainTex");
-        editor.TexturePropertySingleLine(
-            MakeLabel(mainTex, "Albedo (RGB)"), mainTex, FindProperty("_Tint")
-        );
-        if (shouldShowAlphaCutoff) {
-            DoAlphaCutoff();
-        }
-        DoMetallic();
-        DoSmoothness();
-        DoNormal();
-        DoOcclusion();
-        DoEmission();
-        editor.TextureScaleOffsetProperty(mainTex);
-    }
-
     void DoRenderingMode() {
         RenderingMode mode = RenderingMode.Opaque;
         shouldShowAlphaCutoff = false;
@@ -151,6 +134,41 @@ public class MyStandardShaderGUI : ShaderGUI {
                 m.SetInt("_ZWrite", settings.zWrite ? 1 : 0);
             }
         }
+        if (mode == RenderingMode.Fade || mode == RenderingMode.Transparent) {
+            DoSemitransparentShadows();
+        }
+    }
+
+    void DoSemitransparentShadows() {
+        EditorGUI.BeginChangeCheck();
+        bool semitransparentShadows =
+            EditorGUILayout.Toggle(
+                MakeLabel("Semitransparent Shadows"),
+                IsKeywordEnabled("_SEMITRANSPARENT_SHADOWS")
+            );
+        if (EditorGUI.EndChangeCheck()) {
+            SetKeyword("_SEMITRANSPARENT_SHADOWS", semitransparentShadows);
+        }
+        if (!semitransparentShadows) {
+            shouldShowAlphaCutoff = true;
+        }
+    }
+
+    void DoMain() {
+        // GUILayout.Label("Main Maps");
+        MaterialProperty mainTex = FindProperty("_MainTex");
+        editor.TexturePropertySingleLine(
+            MakeLabel(mainTex, "Albedo (RGB)"), mainTex, FindProperty("_Tint")
+        );
+        if (shouldShowAlphaCutoff) {
+            DoAlphaCutoff();
+        }
+        DoMetallic();
+        DoSmoothness();
+        DoNormal();
+        DoOcclusion();
+        DoEmission();
+        editor.TextureScaleOffsetProperty(mainTex);
     }
 
     void DoAlphaCutoff() {

@@ -71,7 +71,7 @@ float3 GetOcclusion(Interpolators i) {
 }
 
 float3 GetEmission(Interpolators i) {
-	#if defined(FORWARD_BASE_PASS)
+	#if defined(FORWARD_BASE_PASS) || defined(DEFERRED_PASS)
 		#if defined(_EMISSION_MAP)
 			return tex2D(_EmissionMap, i.uv) * _Emission;
 		#else
@@ -119,17 +119,22 @@ float3 CalculateNormalMapping(Interpolators i) {
 
 UnityLight CreateLight(Interpolators i) {
 	UnityLight light;
-	// _WorldSpaceLightPos0: current light position
-	#if defined(POINT) || defined(POINT_COOKIE) || defined(SPOT)
-		light.dir = normalize(_WorldSpaceLightPos0.xyz - i.worldPos);
-	#else
-		light.dir = _WorldSpaceLightPos0.xyz;
-	#endif
-	
-	UNITY_LIGHT_ATTENUATION(attenuation, i, i.worldPos);
 
-	light.color = _LightColor0.rgb * attenuation;
-	light.ndotl = DotClamped(i.normal, light.dir);
+	#if defined(DEFERRED_PASS)
+		light.dir = float3(0, 1, 0);
+		light.color = 0;
+	#else
+		// _WorldSpaceLightPos0: current light position
+		#if defined(POINT) || defined(POINT_COOKIE) || defined(SPOT)
+			light.dir = normalize(_WorldSpaceLightPos0.xyz - i.worldPos);
+		#else
+			light.dir = _WorldSpaceLightPos0.xyz;
+		#endif
+		
+		UNITY_LIGHT_ATTENUATION(attenuation, i, i.worldPos);
+
+		light.color = _LightColor0.rgb * attenuation;
+	#endif
 	return light;
 }
 
@@ -157,7 +162,7 @@ UnityIndirect CreateIndirectLight(Interpolators i, float3 viewDir) {
 		indirectLight.diffuse = i.vertexLightColor;
 	#endif
 
-	#if defined(FORWARD_BASE_PASS)
+	#if defined(FORWARD_BASE_PASS) || defined(DEFERRED_PASS)
 		indirectLight.diffuse += max(0, ShadeSH9(float4(i.normal, 1)));
 		float3 reflectionDir = reflect(-viewDir, i.normal);
 		Unity_GlossyEnvironmentData envData;
@@ -195,12 +200,27 @@ UnityIndirect CreateIndirectLight(Interpolators i, float3 viewDir) {
 		float occlusion = GetOcclusion(i);
 		indirectLight.diffuse *= occlusion;
 		indirectLight.specular *= occlusion;
+
+		#if defined(DEFERRED_PASS) && UNITY_ENABLE_REFLECTION_BUFFERS
+			indirectLight.specular = 0;
+		#endif
 	#endif
 
 	return indirectLight;
 }
 
-float4 MyFragmentProgram(Interpolators i) : SV_TARGET {
+struct FragmentOutput {
+	#if defined(DEFERRED_PASS)
+		float4 gBuffer0 : SV_Target0;
+		float4 gBuffer1 : SV_Target1;
+		float4 gBuffer2 : SV_Target2;
+		float4 gBuffer3 : SV_Target3;
+	#else
+		float4 color : SV_Target;
+	#endif
+};
+
+FragmentOutput MyFragmentProgram(Interpolators i) {
 	float alpha = GetAlpha(i);
 	#if defined(_RENDERING_CUTOUT)
 		clip(alpha - _AlphaCutoff);
@@ -229,7 +249,21 @@ float4 MyFragmentProgram(Interpolators i) : SV_TARGET {
 	#if defined(_RENDERING_FADE) || defined(_RENDERING_TRANSPARENT)
 		color.a = alpha;
 	#endif
-	return color;
+	FragmentOutput output;
+	#if defined(DEFERRED_PASS)
+		#if !defined(UNITY_HDR_ON)
+			color.rgb = exp2(-color.rgb);
+		#endif
+		output.gBuffer0.rgb = albedo;
+		output.gBuffer0.a = GetOcclusion(i);
+		output.gBuffer1.rgb = specularTint;
+		output.gBuffer1.a = GetSmoothness(i);
+		output.gBuffer2 = float4(i.normal * 0.5 + 0.5, 1);
+		output.gBuffer3 = color; 
+	#else
+		output.color = color;
+	#endif
+	return output;
 }
 
 #endif

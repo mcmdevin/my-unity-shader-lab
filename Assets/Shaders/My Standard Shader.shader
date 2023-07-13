@@ -83,6 +83,36 @@ Shader "Custom/My Standard Shader" {
 
 		Pass {
 			Tags {
+				"LightMode" = "Deferred"
+			}
+
+			CGPROGRAM
+
+			#pragma target 3.0
+			#pragma exclude_renderers nomrt // deferred shading only possible when GPU supports multiple render textures
+
+			#pragma shader_feature _ _RENDERING_CUTOUT 
+			#pragma shader_feature _METALLIC_MAP
+			#pragma shader_feature _SMOOTHNESS_ALBEDO
+			#pragma shader_feature _OCCLUSION_MAP
+			#pragma shader_feature _EMISSION_MAP
+
+			#pragma multi_compile _ SHADOWS_SCREEN // keyword when the main light casts shadow
+			#pragma multi_compile _ VERTEXLIGHT_ON
+			#pragma multi_compile _ UNITY_HDR_ON
+
+			#pragma vertex MyVertexProgram
+			#pragma fragment MyFragmentProgram
+
+			#define DEFERRED_PASS 
+
+			#include "My Standard Lighting.cginc"
+
+			ENDCG
+		}
+
+		Pass {
+			Tags {
 				"LightMode" = "ShadowCaster"
 			}
 
