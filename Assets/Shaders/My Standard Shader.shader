@@ -22,6 +22,12 @@ Shader "Custom/My Standard Shader" {
 		[HideInInspector] _ZWrite ("_ZWrite", Float) = 1
 	}
 
+	CGINCLUDE
+
+		#define FOG_DISTANCE
+
+	ENDCG
+
 	SubShader {
 
 		Pass {
@@ -44,6 +50,7 @@ Shader "Custom/My Standard Shader" {
 
 			#pragma multi_compile _ SHADOWS_SCREEN // keyword when the main light casts shadow
 			#pragma multi_compile _ VERTEXLIGHT_ON
+			#pragma multi_compile_fog
 
 			#pragma vertex MyVertexProgram
 			#pragma fragment MyFragmentProgram
@@ -72,6 +79,7 @@ Shader "Custom/My Standard Shader" {
 			#pragma shader_feature _SMOOTHNESS_ALBEDO
 
 			#pragma multi_compile_fwdadd_fullshadows // let all sorts of light cast shadows
+			#pragma multi_compile_fog
 
 			#pragma vertex MyVertexProgram
 			#pragma fragment MyFragmentProgram

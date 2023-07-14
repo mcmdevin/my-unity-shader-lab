@@ -4,6 +4,13 @@
 #include "UnityPBSLighting.cginc"
 #include "AutoLight.cginc"
 
+#if defined(FOG_LINEAR) || defined(FOG_EXP) || defined(FOG_EXP2)
+	#if !defined(FOG_DISTANCE)
+		#define FOG_DEPTH 1
+	#endif
+	#define FOG_ON 1
+#endif
+
 float4 _Tint;
 sampler2D _MainTex;
 float4 _MainTex_ST;
@@ -31,8 +38,11 @@ struct Interpolators {
 	float3 normal : TEXCOORD1;
 	float3 tangent : TEXCOORD2;
 	float3 bitangent : TEXCOORD3;
-	float3 worldPos : TEXCOORD4;
-
+	#if FOG_DEPTH
+		float4 worldPos : TEXCOORD4;
+	#else
+		float3 worldPos : TEXCOORD4;
+	#endif
 	SHADOW_COORDS(5) // shadowCoordinates is TEXCOORD5
 
 	#if defined(VERTEXLIGHT_ON)
@@ -88,7 +98,7 @@ void ComputeVertexLightColor(inout Interpolators i) {
 			unity_4LightPosX0, unity_4LightPosY0, unity_4LightPosZ0,
 			unity_LightColor[0].rgb, unity_LightColor[1].rgb,
 			unity_LightColor[2].rgb, unity_LightColor[3].rgb,
-			unity_4LightAtten0, i.worldPos, i.normal
+			unity_4LightAtten0, i.worldPos.xyz, i.normal
 		); // https://catlikecoding.com/unity/tutorials/rendering/part-5/
 	#endif
 }
@@ -96,7 +106,10 @@ void ComputeVertexLightColor(inout Interpolators i) {
 Interpolators MyVertexProgram(VertexData v) {
 	Interpolators i;
 	i.pos = UnityObjectToClipPos(v.vertex);
-	i.worldPos = mul(unity_ObjectToWorld, v.vertex);
+	i.worldPos.xyz = mul(unity_ObjectToWorld, v.vertex);
+	#if FOG_DEPTH
+		i.worldPos.w = i.pos.z;
+	#endif
 	i.uv = TRANSFORM_TEX(v.uv, _MainTex);
 	i.normal = UnityObjectToWorldNormal(v.normal);
 	i.tangent = UnityObjectToWorldDir(v.tangent.xyz);
@@ -126,12 +139,12 @@ UnityLight CreateLight(Interpolators i) {
 	#else
 		// _WorldSpaceLightPos0: current light position
 		#if defined(POINT) || defined(POINT_COOKIE) || defined(SPOT)
-			light.dir = normalize(_WorldSpaceLightPos0.xyz - i.worldPos);
+			light.dir = normalize(_WorldSpaceLightPos0.xyz - i.worldPos.xyz);
 		#else
 			light.dir = _WorldSpaceLightPos0.xyz;
 		#endif
 		
-		UNITY_LIGHT_ATTENUATION(attenuation, i, i.worldPos);
+		UNITY_LIGHT_ATTENUATION(attenuation, i, i.worldPos.xyz);
 
 		light.color = _LightColor0.rgb * attenuation;
 	#endif
@@ -168,7 +181,7 @@ UnityIndirect CreateIndirectLight(Interpolators i, float3 viewDir) {
 		Unity_GlossyEnvironmentData envData;
 		envData.roughness = 1 - GetSmoothness(i);
 		envData.reflUVW = BoxProjection(
-			reflectionDir, i.worldPos,
+			reflectionDir, i.worldPos.xyz,
 			unity_SpecCube0_ProbePosition,
 			unity_SpecCube0_BoxMin, unity_SpecCube0_BoxMax
 		);
@@ -176,7 +189,7 @@ UnityIndirect CreateIndirectLight(Interpolators i, float3 viewDir) {
 			UNITY_PASS_TEXCUBE(unity_SpecCube0), unity_SpecCube0_HDR, envData
 		);
 		envData.reflUVW = BoxProjection(
-			reflectionDir, i.worldPos,
+			reflectionDir, i.worldPos.xyz,
 			unity_SpecCube1_ProbePosition,
 			unity_SpecCube1_BoxMin, unity_SpecCube0_BoxMax
 		);
@@ -209,6 +222,22 @@ UnityIndirect CreateIndirectLight(Interpolators i, float3 viewDir) {
 	return indirectLight;
 }
 
+float4 ApplyFog(float4 color, Interpolators i) {
+	#if FOG_ON
+		float viewDistance = length(_WorldSpaceCameraPos - i.worldPos.xyz);
+		#if FOG_DEPTH
+			viewDistance = UNITY_Z_0_FAR_FROM_CLIPSPACE(i.worldPos.w);
+		#endif
+		UNITY_CALC_FOG_FACTOR_RAW(viewDistance); // handle possibly reversed clip-space Z dimension
+		float3 fogColor = 0;
+		#if defined(FORWARD_BASE_PASS)
+			fogColor = unity_FogColor.rgb;
+		#endif
+		color.rgb = lerp(fogColor.rgb, color.rgb, saturate(unityFogFactor));
+	#endif
+	return color;
+}
+
 struct FragmentOutput {
 	#if defined(DEFERRED_PASS)
 		float4 gBuffer0 : SV_Target0;
@@ -226,7 +255,7 @@ FragmentOutput MyFragmentProgram(Interpolators i) {
 		clip(alpha - _AlphaCutoff);
 	#endif
 
-	float3 viewDir = normalize(_WorldSpaceCameraPos - i.worldPos);
+	float3 viewDir = normalize(_WorldSpaceCameraPos - i.worldPos.xyz);
 	float3 albedo = tex2D(_MainTex, i.uv).rgb * _Tint.rgb;
 	float3 specularTint;
 	float oneMinusReflectivity;
@@ -261,7 +290,7 @@ FragmentOutput MyFragmentProgram(Interpolators i) {
 		output.gBuffer2 = float4(i.normal * 0.5 + 0.5, 1);
 		output.gBuffer3 = color; 
 	#else
-		output.color = color;
+		output.color = ApplyFog(color, i);
 	#endif
 	return output;
 }
