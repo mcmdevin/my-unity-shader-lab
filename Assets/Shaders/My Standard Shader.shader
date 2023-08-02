@@ -5,7 +5,7 @@
 Shader "Custom/My Standard Shader" {
 
 	Properties {
-		_Tint ("Tint", Color) = (1, 1, 1, 1)
+		_Color ("Tint", Color) = (1, 1, 1, 1)
 		_MainTex ("Albedo", 2D) = "white" {}
 		[NoScaleOffset] _NormalMap ("Normal Map", 2D) = "bump" {}
 		_NormalScale ("Normal Scale", Range(0, 1)) = 1
@@ -16,7 +16,7 @@ Shader "Custom/My Standard Shader" {
 		_OcclusionStrength("Occlusion Strength", Range(0, 1)) = 1
 		[NoScaleOffset] _EmissionMap ("Emission", 2D) = "black" {}
 		_Emission ("Emission", Color) = (0, 0, 0)
-		_AlphaCutoff ("Alpha Cutoff", Range(0, 1)) = 0.5
+		_Cutoff ("Alpha Cutoff", Range(0, 1)) = 0.5
 		[HideInInspector] _SrcBlend ("_SrcBlend", Float) = 1
 		[HideInInspector] _DstBlend ("_DstBlend", Float) = 1
 		[HideInInspector] _ZWrite ("_ZWrite", Float) = 1
@@ -48,8 +48,7 @@ Shader "Custom/My Standard Shader" {
 			#pragma shader_feature _OCCLUSION_MAP
 			#pragma shader_feature _EMISSION_MAP
 
-			#pragma multi_compile _ SHADOWS_SCREEN // keyword when the main light casts shadow
-			#pragma multi_compile _ VERTEXLIGHT_ON
+			#pragma multi_compile_fwdbase
 			#pragma multi_compile_fog
 
 			#pragma vertex MyVertexProgram
@@ -106,8 +105,7 @@ Shader "Custom/My Standard Shader" {
 			#pragma shader_feature _EMISSION_MAP
 
 			#pragma multi_compile _ SHADOWS_SCREEN // keyword when the main light casts shadow
-			#pragma multi_compile _ VERTEXLIGHT_ON
-			#pragma multi_compile _ UNITY_HDR_ON
+			#pragma multi_compile_prepassfinal
 
 			#pragma vertex MyVertexProgram
 			#pragma fragment MyFragmentProgram
@@ -138,6 +136,27 @@ Shader "Custom/My Standard Shader" {
 			#pragma fragment MyShadowFragmentProgram
 
 			#include "My Standard Shadows.cginc"
+
+			ENDCG
+		}
+
+		Pass {
+			Tags {
+				"Lightmode" = "Meta"
+			}
+
+			Cull Off
+
+			CGPROGRAM
+
+			#pragma vertex MyLightmappingVertexProgram
+			#pragma fragment MyLightmappingFragmentProgram
+
+			#pragma shader_feature _METALLIC_MAP
+			#pragma shader_feature _SMOOTHNESS_ALBEDO
+			#pragma shader_feature _EMISSION_MAP
+
+			#include "My Standard Lightmapping.cginc"
 
 			ENDCG
 		}

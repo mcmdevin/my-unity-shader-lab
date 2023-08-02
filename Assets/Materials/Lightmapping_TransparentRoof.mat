@@ -7,18 +7,19 @@ Material:
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_Name: Test Material
+  m_Name: Lightmapping_TransparentRoof
   m_Shader: {fileID: 4800000, guid: 615da41ef4022484c847b8c58e916531, type: 3}
   m_ValidKeywords:
+  - _RENDERING_CUTOUT
   - _SEMITRANSPARENT_SHADOWS
-  - _SMOOTHNESS_ALBEDO
   m_InvalidKeywords:
   - OCCLUSION_MAP
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
-  m_CustomRenderQueue: 2000
-  stringTagMap: {}
+  m_CustomRenderQueue: 2450
+  stringTagMap:
+    RenderType: TransparentCutout
   disabledShaderPasses: []
   m_SavedProperties:
     serializedVersion: 3
@@ -28,7 +29,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: cf1eb2d3368cb446eafc43733f6d2073, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicMap:
@@ -51,11 +52,11 @@ Material:
     - _Metallic: 0
     - _NormalScale: 1
     - _OcclusionStrength: 1
-    - _Smoothness: 0.8
+    - _Smoothness: 0.5
     - _SrcBlend: 1
     - _ZWrite: 1
     m_Colors:
-    - _Color: {r: 1, g: 1, b: 1, a: 1}
+    - _Color: {r: 1, g: 0, b: 0, a: 1}
     - _Emission: {r: 0, g: 0, b: 0, a: 1}
-    - _Tint: {r: 1, g: 1, b: 1, a: 1}
+    - _Tint: {r: 1, g: 1, b: 1, a: 0.5019608}
   m_BuildTextureStacks: []
